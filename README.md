@@ -1,12 +1,12 @@
 # Dokumenten-Workshop
 
-Dokumenten aus öffentlichen Quellen oder Leaks mit Apache Tika aufbereiten und mit Elasticsearch durchsuchbar machen.
+Dokumente aus öffentlichen Quellen oder Leaks mit Apache Tika aufbereiten und mit Elasticsearch durchsuchbar machen.
 
 *“Documents are the new data.”*
 
 ## Tika
 
-[Apache Tika](https://tika.apache.org/) erkennt und extrahiert Metadaten und Text aus verschiedenen Dateitypen (wie PDF, DOC und XLS). Alle diese Dateitypen können über eine einzige Schnittstelle verarbeitet werden, wodurch Tika für die Indexierung, Inhaltsanalyse und Übersetzung und vieles mehr verwendet werden. Tika ist eine Java-Anwendung (Standalone oder Server), welche durch verschiedene Parser und Detektoren erweitert werden kann.
+[Apache Tika](https://tika.apache.org/) erkennt und extrahiert Metadaten und Text aus verschiedenen Dateitypen (zum Beispiel PDF, DOC und XLS). Alle Dateitypen können über eine einzige Schnittstelle verarbeitet werden, wodurch Tika für die Indexierung, Inhaltsanalyse und Übersetzung von Dokumenten in großem Stil verwendet werden kann. Tika ist eine Java-Anwendung (Standalone oder Server), welche durch verschiedene Parser und Detektoren erweitert werden kann.
 
 ### Installation
 
@@ -27,12 +27,13 @@ In machen Fällen bietet es sich an, Tika aus dem Source Code selbst zu bauen. D
 
 ### Text extrahieren
 
-Die häufigste Form von Dokumenten im Bereich Journalismus sind PDFs. Wurden diese direkt aus Word oder eine vergleichbaren Textverarbeitungssoftware erstellt, lässt sich der Text verhältnismäßig einfach extrahieren. Etwas schwieriger wird es bei Scans von Dokumenten. Um den Text aus Bildern zu extrahieren verwendet der Tika PDF-Parser die Open-Source-OCR-Lösung [Tesseract](https://github.com/tesseract-ocr/tesseract).
+Die häufigste Form von Dokumenten im Bereich Journalismus sind PDFs. Wurden diese direkt aus Word oder eine vergleichbaren Textverarbeitungssoftware erstellt, lässt sich der Text verhältnismäßig einfach extrahieren. Etwas schwieriger wird es bei Scans von Dokumenten. Um den Text aus Bildern zu extrahieren, verwendet der Tika-PDF-Parser die Open-Source-OCR-Lösung [Tesseract](https://github.com/tesseract-ocr/tesseract).
 
 ```
-brew install tesseract --with-all-languages --with-serial-num-pack
+$ brew install tesseract --with-all-languages --with-serial-num-pack
 ```
-Wenn Tesseract auf dem System installiert ist, versucht Tika automatisch Tesseract für die Extraktion von Bildern aufzurufen. 
+
+Wenn Tesseract auf dem System installiert ist, versucht Tika automatisch, Tesseract für die Extraktion von Bildern zu verwenden. 
 
 ```
 $ java -jar tika-app-1.17.jar -t -i ./pdf -o ./text
@@ -40,7 +41,7 @@ $ java -jar tika-app-1.17.jar -t -i ./pdf -o ./text
 
 Standardgemäß klappt das aber nicht perfekt, weil Abhängigkeiten zum Verarbeiten von TIFF, JPEG2000 und BigJPEG-Bildern fehlen. 
 
-In diesem Fall muss man Tika aus dem Source Code neu bauen. Dazu müssen die fehlenden Abhängigkeiten im [Maven](https://maven.apache.org/)-Projekt hinzugefügt werden. Hier ein Auszug aus der `pom.xml` im Ordner `app`:
+In diesem Fall muss man Tika aus dem Source Code neu kompiliert werden. Dazu müssen die fehlenden Abhängigkeiten im [Maven](https://maven.apache.org/)-Projekt hinzugefügt werden. Hier ein Auszug aus der `pom.xml` im Ordner `tika-app`:
 
 ```xml
 <dependency>
@@ -68,7 +69,9 @@ Sind die fehlenden Abhängigkeiten hinzugefügt, muss das Projekt neu gebaut wer
 $ mvn install
 ```
 
-Sollte man Tesseract nicht verwenden wollen, kann man den [PDF Parser](https://wiki.apache.org/tika/PDFParser%20%28Apache%20PDFBox%29) in einer Konfigurationsdatei `config.xml` entsprechen anpassen:
+Der fertige Build wird im Ordner `target` erzeugt.
+
+Sollte man Tesseract nicht verwenden wollen, kann man den [PDF Parser](https://wiki.apache.org/tika/PDFParser%20%28Apache%20PDFBox%29) in einer Konfigurationsdatei `config.xml` entsprechend anpassen:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -81,13 +84,13 @@ Sollte man Tesseract nicht verwenden wollen, kann man den [PDF Parser](https://w
 </properties>
 ```
 
-Eine eigene Konfigurationsdatei kann man mit dem Parameter -c laden:
+Die Konfigurationsdatei kann man mit dem Parameter -c übergeben werden:
 
 ```
 $ java -jar tika-app-1.17.jar -c config.xml -t -i pdf -o text
 ```
 
-Für die Verwendung in Node.js gibt es eine Brücke [node-tika](https://github.com/ICIJ/node-tika). Diese wurde aber schon länger nicht mehr aktualisiert und ist sehr fehleranfällig. node-tika wird auch in den BR Data [elasticsearch-import-tools](https://github.com/br-data/elasticsearch-import-tools/blob/master/extract-multicore.js) verwendet.
+Für die Verwendung in Node.js gibt es [node-tika](https://github.com/ICIJ/node-tika). Dies Bibliothek wurde aber schon länger nicht mehr aktualisiert und ist recht fehleranfällig. node-tika wird auch in den BR Data [elasticsearch-import-tools](https://github.com/br-data/elasticsearch-import-tools/blob/master/extract-multicore.js) verwendet.
 
 Mehr Infos zur Verwendung von Tika in Verbindung mit Tesseract finden sich im [Tika Wiki](https://wiki.apache.org/tika/TikaOCR).
 
@@ -107,13 +110,13 @@ Für den skalierbaren Produktiveinsatz:
 - **Shard**: Eine Instanz von Elasticsearch mit einem Teil der Dokumente
 - **Replica**: Eine Instanz von Elasticsearch mit einer Kopie eines Index
 
-In der Entwicklungsphase kommt es häufig vor, dass der Cluster nur aus einem Node mit einem Index besteht.
+In der Entwicklungsphase kann der Cluster nur aus einem Node mit einem Index bestehen.
 
 Zum Einarbeiten in Elasticsearch empfiehlt sich der [Definitive Guide](https://www.elastic.co/guide/en/elasticsearch/guide/2.x/index.html).
 
 ### Installation
 
-Elasticsearch kann man auf Mac OS X einfach über [Homebrew](https://brew.sh/index_de.html) zu installieren. Wir arbeiten momentan noch mit der Version 2.4 von Elasticsearch. Ein Update ist aber geplant.
+Elasticsearch kann man auf Mac OS X einfach über [Homebrew](https://brew.sh/index_de.html) installieren. Wir arbeiten momentan noch mit der Version 2.4 von Elasticsearch. Ein Update ist aber geplant.
 
 ```
 $ brew install elasticsearch@2.4
@@ -136,10 +139,10 @@ Für die ordnungsgmäße Ausführung braucht es eine gültige [Konfiguration](ht
 Um herauszufinden, wo auf dem System die Konfiguration liegt, kann man `brew info` aufrufen:
 
 ```
-brew info elasticsearch@2.4
+$ brew info elasticsearch@2.4
 ```
 
-Linux-Benutzer können Elasticsearch mit [systemd](https://www.elastic.co/guide/en/elasticsearch/reference/2.4/setup-service.html#using-systemd) oder init(https://www.elastic.co/guide/en/elasticsearch/reference/2.4/setup-service.html#_using_chkconfig) starten.
+Zum einfachen Starten und Stoppen der über Homebrew installieren Dienste kann man das [LaunchRocket PrefPane](https://github.com/jimbojsb/launchrocket) verwenden. Linux-Benutzer können Elasticsearch mit [systemd](https://www.elastic.co/guide/en/elasticsearch/reference/2.4/setup-service.html#using-systemd) oder [init](https://www.elastic.co/guide/en/elasticsearch/reference/2.4/setup-service.html#_using_chkconfig) starten.
 
 ### Status und Verwaltung
 
@@ -196,7 +199,7 @@ $ curl -XDELETE localhost:9200/my-index
 
 ### Analyzer und Mapping
 
-Analyzer sind Funktionen, die bestimmen, wie mit importierten Texten umgegangen werden soll. Das sind zum Beispiel:
+Analyzer sind Funktionen, die bestimmen wie mit importierten Texten umgegangen werden soll. Das sind zum Beispiel:
 
 - **Tokenizer**: Eingabetext auf Wortgrenzen aufteilen
 - **Token-Filter**: Vom Tokenizer ausgegebenen Token aufräumen
@@ -271,7 +274,7 @@ $ curl -XPUT localhost:9200/my-index/_mapping/doc -d '
 
 Wird kein Analyzer oder Mapping angegeben, verwendet Elasticsearch (meist sinnvolle) Standardeinstellungen. Mehr Infos zu Analyzern und Mapping gibt es in der [Elasticsearch Dokumentation](https://www.elastic.co/guide/en/elasticsearch/guide/2.x/configuring-analyzers.html).
 
-In den [elasticsearch-import-tools](https://github.com/br-data/elasticsearch-import-tools) gibt es eine [Skript](https://github.com/br-data/elasticsearch-import-tools/blob/master/prepare.js), welches einen Elasticsearch-Index für den Import von Dokumenten vorbereitet und einem viel Arbeit abnimmt. Der alte Index wird dabei gelöscht:
+In den [elasticsearch-import-tools](https://github.com/br-data/elasticsearch-import-tools) gibt es eine [Skript](https://github.com/br-data/elasticsearch-import-tools/blob/master/prepare.js), welches einen Elasticsearch-Index für den Import von Dokumenten vorbereitet. Der alte Index wird dabei gelöscht:
 
 ```
 $ node prepare.js localhost:9200 my-index doc
@@ -326,6 +329,8 @@ $ node import.js ./text localhost:9200 my-index doc
 
 ### Dokumente suchen
 
+Es gibt verschiedene Möglichkeiten eine Suchanfrage in Elasticsearch zu stellen. Zusätzlich zu den verschieden Suchmethoden, kann man die jeweilige Suchanfragen noch mit unterschiedlichen Parametern konfigurieren:
+
 ```
 $ curl -XGET 'http://localhost:9200/my-index/doc/_search' -d '{
   "query" : {
@@ -336,7 +341,7 @@ $ curl -XGET 'http://localhost:9200/my-index/doc/_search' -d '{
 }'
 ```
 
-Es gibt verschiedene Möglichkeiten eine Suchanfrage zu stellen. Grundsätzlich wird zwischen Volltextsuche (full text) und Begriffssuche (term) unterschieden. Hier die vier wichtigsten Suchmethoden:
+Grundsätzlich wird zwischen einer Volltextsuche (mehrere Wörter) und einer Begriffssuche (ein Wort) unterschieden. Multi Match und Simple Query können ganze Sätze finden, während in der Fuzzy- oder Regex-Suche nur nach einzelnen Begriffen gesucht werden kann:
 
 - **Multi Match Query**: Findet exakte Suchausdrücke wie **John Doe** [(Dokumentation)](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-multi-match-query.html).
 - **Simple Query DSL**: Findet alle Wörter eines Suchausdrucks: **"John" AND "Doe"**. Unterstützt außerdem Wildcards und einfache Suchoperatoren [(Dokumentation)](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html).
@@ -385,13 +390,16 @@ Die [elasticsearch-import-tools](https://github.com/br-data/elasticsearch-import
 $ curl http://localhost:3003/match/John%20Doe
 ```
 
-### Frontend
+### Elasticsearch Frontend
 
-Die Dokumentation für das BR-Data Elasticsearch Frontend sich hier: [elasticsearch-frontend](https://github.com/br-data/elasticsearch-frontend).
+Das [Elasticsearch Frontend](https://github.com/br-data/elasticsearch-frontend) bietet eine Suchoberfläche für das Durchsuchen von großen Dokumentensammlungen in Elasticsearch. Die Web-Anwendung wurde für die Analyse von Dokumenten-Leaks entwickelt und unterstützt eine Benutzer-Authentifizierung.
 
 ### Zukunftsausblick
 
-- Autovervollständigung
+Der Dokumenten-Workflow bietet Potential für weitere datenjournalistische Anwendungen:
+
 - Named Entity Recognition
+- Datenanalysen mit Kibana
 - Dokumenten-Import
-- Zentralisierter Data Store
+- Plagiatssuche
+- Data-Warehouse
